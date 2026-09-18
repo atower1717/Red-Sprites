@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0044)file:///Users/alantower/Downloads/index.html -->
-<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html>
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Red Sprites - Tastes of Eternity</title>
 <style>
@@ -53,8 +53,8 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;}
 </head>
 <body>
 <div id="stage">
-  <canvas id="gl-cv" width="2004" height="1294" style="width: 2004px; height: 1294px;"></canvas>
-  <canvas id="overlay-cv" width="2004" height="1294" style="width: 2004px; height: 1294px;"></canvas>
+  <canvas id="gl-cv"></canvas>
+  <canvas id="overlay-cv"></canvas>
 
   <div id="title-block">
     <div id="title-main">Tastes of Eternity</div>
@@ -64,7 +64,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;}
   <div id="begin" onclick="startAll()">
     <div id="begin-super">Tastes of Eternity</div>
     <div id="begin-main">Red Sprites</div>
-    <div id="begin-duration">1 · 59</div>
+    <div id="begin-duration">1 &middot; 59</div>
     <div id="begin-btn">Enter the Field</div>
   </div>
 
@@ -124,16 +124,11 @@ var FS = [
 'precision highp float;',
 'uniform sampler2D u_img;',
 'uniform float u_time,u_amp,u_spriteDisp,u_cloudDrift,u_capFlicker;',
-'uniform float u_prog;',
 'uniform float u_dipMode,u_endFade,u_breath,u_globalBright,u_audioSync;',
 'uniform vec2  u_pSprite,u_pCloud,u_pCap;',
 'uniform vec2  u_capPos[5];',
 'uniform float u_capPulse[5];',
-'uniform float u_capFront[5];',   // downward propagation front per cap: 0=just ignited at top, 1=reached tendril tips
-'uniform float u_capHalo[5];',    // diffuse halo/bell brightness per cap (ignites first, fades)
 'uniform float u_sweep;',
-'uniform float u_ghost;',         // rare green airglow ghost near horizon after big strikes
-'uniform float u_idleGlow;',      // faint always-present baseline glow (balanced mode)
 'varying vec2 v_uv;',
 'float SY_HI=0.00,SY_LO=0.48,CY_HI=0.32,CY_LO=0.77,EY=0.80;',
 'float N(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
@@ -161,109 +156,6 @@ var FS = [
 '    vec2 sp2=uv*vec2(4.5,2.5)+u_pSprite*0.4+vec2(-t*0.006,t*0.004);',
 '    float sv2=fbm(sp2,2)*2.0-1.0;',
 '    disp.y+=sv2*0.0012*spriteZone*u_breath*dispScale;',
-'  }',
-// ---- Red CLOUD drift (the diffuse glow above the tendrils) ----
-// Give the red cloud band a slow, organic billow so it breathes and shifts gently
-// rather than sitting static. Confined to the upper sprite band (above the tendrils),
-// independent low-frequency flow, very subtle but discernible. Eases with audio.
-'  {',
-'    float cloudBand=(1.0-smoothstep(0.14,0.22,uv.y));',          // upper band only, above tendrils
-'    float cloudX=smoothstep(0.02,0.10,uv.x)*(1.0-smoothstep(0.58,0.66,uv.x));',
-'    float cb=cloudBand*cloudX*spriteZone;',
-'    if(cb>0.003){',
-'      float caud=0.6+0.4*u_audioSync;',
-// slow domain-warped flow - large features, slow time, gentle billow',
-'      vec2 cq=uv*vec2(3.2,2.4)+vec2(t*0.010,-t*0.006)+u_pSprite*0.3;',
-'      float cw1=fbm(cq,3)*2.0-1.0;',
-'      float cw2=fbm(cq+vec2(4.1,2.3)+vec2(-t*0.008,t*0.005),3)*2.0-1.0;',
-'      vec2 cq2=cq+vec2(cw1,cw2)*0.5;',
-'      float cdx=fbm(cq2,2)*2.0-1.0;',
-'      float cdy=fbm(cq2+vec2(3.7,1.9),2)*2.0-1.0;',
-'      float camp=cb*dispScale*caud;',
-'      disp.x+=cdx*0.0022*camp;',
-'      disp.y+=cdy*0.0016*camp;',
-'    }',
-'  }',
-// ---- Per-STRAND tendril motion ----
-// Movement happens at the level of INDIVIDUAL strands inside the bundles: a few
-// single tendrils flex while their neighbours stay still, then different single
-// strands elsewhere take over. Scattered evenly across ALL bundles (including the
-// faint right cluster), only a handful active at once, never whole bundles in unison.
-'  {',
-// Cover the FULL tendril extent measured from the image: x ~0.10 to ~0.58.
-'    float tzX=smoothstep(0.08,0.13,uv.x)*(1.0-smoothstep(0.56,0.61,uv.x));',
-'    float tzY=smoothstep(0.14,0.23,uv.y)*(1.0-smoothstep(0.40,0.49,uv.y));',
-// IMPORTANT: do NOT multiply by spriteZone here - its right-edge falloff (x>0.50)
-// was choking the faint right cluster. The tendril band mask (tzX*tzY) already
-// confines motion to the hanging filaments; we only need spY to stay in the sky band.
-'    float tz=tzX*tzY*spY;',
-'    if(tz>0.003){',
-'      float depth=smoothstep(0.15,0.47,uv.y);',
-// --- Identify which discrete STRAND this pixel belongs to ---
-// Quantize x into ~46 narrow strands across the field so each is an individual
-// tendril, not a section. strandId is constant within a strand.
-'      float STRANDS=46.0;',
-'      float sx=uv.x*STRANDS;',
-'      float strandId=floor(sx);',
-'      float within=fract(sx);',                          // 0..1 across this strand
-// per-strand random phase/rate so each has its own independent on/off rhythm
-'      float rnd=fract(sin(strandId*12.9898)*43758.5453);',
-'      float rnd2=fract(sin(strandId*78.233)*12733.1);',
-// each strand cycles slowly; only near the peak of its cycle is it "active"
-'      float rate=0.05+rnd*0.07;',                        // slow, varied per strand
-'      float ph=fract(t*rate + rnd);',                    // 0..1 personal cycle
-'      float activeStrand=smoothstep(0.46,0.50,ph)*(1.0-smoothstep(0.62,0.74,ph));', // short on-window
-// Eligibility ROTATES over time so EVERY strand (including the small far-right
-// cluster) gets its turn - rather than a fixed subset being permanently excluded.
-// A slow wave sweeps an "eligible window" across strand-space; combined with each
-// strand's own phase, only a few overlap into actual motion at any instant.
-'      float sweep=fract(t*0.012 + rnd*0.5);',            // each strand enters the window at its own time
-'      float eligible=smoothstep(0.0,0.12,sweep)*(1.0-smoothstep(0.30,0.50,sweep));',
-'      eligible=clamp(eligible*1.4,0.0,1.0);',
-'      float gate=activeStrand*eligible;',
-// vary WHERE along the strand it flexes: sometimes a part, sometimes most.
-'      float seg=smoothstep(0.15,0.45, sn(vec2(strandId*1.7, t*0.15+rnd*5.0)));', // moving segment along length
-'      float lenWindow=mix(0.55,1.0, seg);',              // how much of the length participates
-'      float along=clamp((uv.y-0.18)/0.26,0.0,1.0);',
-'      float lengthGate=smoothstep(0.0,0.12,along)*(1.0-smoothstep(lenWindow-0.12,lenWindow+0.05,along));',
-'      gate*=lengthGate;',
-// keep the strand edges soft so the moving one blends with still neighbours
-'      float edge=smoothstep(0.0,0.18,within)*(1.0-smoothstep(0.82,1.0,within));',
-'      gate*=edge;',
-// gentle audio nudge to liveliness (does not change WHICH strands, only feel)
-'      gate*=(0.8+0.4*u_audioSync);',
-'      gate=clamp(gate,0.0,1.0);',
-// --- The motion: two different movement "frames" so strands don't all flex alike ---
-// Most strands use a sinuous wiggle (style 0). A subset use a different frame
-// (style 1): a slower curling pendulum sway with a travelling kink, which reads
-// as a distinct, more organic motion and breaks the same-y look.
-'      float styleR=fract(sin(strandId*4.137+1.7)*9173.3);',
-'      float style1=step(0.62, styleR);',               // ~38% of strands use the alternate frame
-// Direction: most strands flow top->tip (wave travels DOWN, -t). A few REVERSE,
-// flowing tip->top (wave travels UP, +t). dir = +1 normal, -1 reversed.
-'      float revR=fract(sin(strandId*2.713+5.1)*6217.7);',
-'      float dir = (revR<0.22) ? -1.0 : 1.0;',           // ~22% reversed
-'      float tD = t*dir;',                                // reversed strands use -t internally
-// style 0: quick sinuous wiggle (lateral dominant)
-'      float wigA=sin(uv.y*42.0 - tD*1.3 + strandId*2.1 + rnd*6.28);',
-'      float wigB=sin(uv.y*22.0 - tD*0.8 + strandId*1.3);',
-'      float sway0=(wigA*0.7+wigB*0.5);',
-'      float dy0=sin(uv.y*30.0 - tD*1.0 + strandId)*0.40;',
-// style 1: slower curling pendulum with a travelling kink
-'      float pend=sin(tD*0.6 + strandId*1.9) * (0.6+0.4*sin(uv.y*9.0 - tD*0.5));',
-'      float kink=sin(uv.y*60.0 - tD*2.2 + strandId*3.3);',
-'      float sway1=pend*0.9 + kink*0.35;',
-'      float dy1=cos(uv.y*18.0 - tD*0.7 + strandId)*0.55;',
-// pick per strand
-'      float swayX=mix(sway0, sway1, style1);',
-'      float swayY=mix(dy0,  dy1,  style1);',
-// gentle extra push on the right side so the faint right cluster reads a bit more
-'      float rightBoost=1.0+smoothstep(0.42,0.56,uv.x)*0.55;',
-'      float amp=tz*depth*dispScale*gate*rightBoost;',
-// amplitudes ramped +13% (0.0040->0.00452, 0.0016->0.00181)
-'      disp.x+=swayX*0.00452*amp;',
-'      disp.y+=swayY*0.00181*amp;',
-'    }',
 '  }',
 // Cloud drift: slow lateral
 '  if(cloudZone>0.005){',
@@ -343,43 +235,26 @@ var FS = [
 '    pinprick =pdot*pon*pgate*(1.0-pinType)*tendrilMat;',
 '    pinprickW=pdot*pon*pgate*pinType*tendrilMat;',
 '  }',
-// Per-cap STRIKE system: each cap fires as a discrete event.
-// A halo ignites at the top (u_capHalo), then a brightness FRONT
-// (u_capFront: 0->1) races DOWNWARD along the tendrils over the strike's
-// short life. Material below the front is dark; at/above it is lit; just
-// behind the leading edge is brightest (the streamer head).
+// Per-cap pulses: 3-freq interference + domain-warped sparkle + autonomous micro-bursts.
 '  float capFilament=0.0;',
-'  float capHaloGlow=0.0;',
-'  float tipBlue=0.0;',     // accumulates blue-violet weighting toward tendril tips
 '  for(int i=0;i<5;i++){',
 '    vec2 cpos=u_capPos[i];',
 '    float dx=abs(uv.x-cpos.x);',
 '    float colMask=exp(-dx*dx*310.0);',
-// Tendril vertical span: from just below the cap down to the tips (~0.40).
-'    float topY=cpos.y;',
-'    float tipY=0.42;',
-'    float yMask=smoothstep(topY-0.015,topY+0.010,uv.y)*(1.0-smoothstep(0.38,0.46,uv.y));',
-// Where along the tendril are we? 0 at top, 1 at tips.
-'    float along=clamp((uv.y-topY)/(tipY-topY),0.0,1.0);',
-// Downward-propagating front: lit where along<=front. Leading edge is hottest.
-'    float front=u_capFront[i];',
-'    float lit=1.0-smoothstep(front,front+0.16,along);',          // body behind the front
-'    float head=exp(-pow((along-front)*7.0,2.0));',               // bright streamer head at the edge
-'    float propagate=(lit*0.6+head*1.0);',
-// Single gentle structural wave so the lit tendril has texture, not a flat bar.
+'    float yMask=smoothstep(cpos.y-0.015,cpos.y+0.010,uv.y)*(1.0-smoothstep(0.38,0.46,uv.y));',
+'    // Single gentle wave — enough motion without visible banding',
 '    float ty=uv.y-cpos.y;',
-'    float wave=0.55+0.45*sin(ty*14.0-float(i)*1.7);',
-// Domain-warped sparkle gives filament grain.
+'    float wave=max(0.0,sin(ty*14.0-t*3.5-float(i)*1.7))*0.20;',
+'    // Domain-warped sparkle: breaks uniform diagonal of noise field',
 '    float dsw=sn(vec2(uv.x*200.0+float(i)*30.0+t*0.18,uv.y*72.0-t*0.12))*0.022;',
 '    float spark=fbm(vec2((uv.x+dsw)*240.0,uv.y*80.0-t*4.0+float(i)*3.0),2);',
 '    spark=pow(spark,2.3)*1.5;',
-'    float tendril=colMask*yMask*u_capPulse[i]*propagate*(wave*0.7+spark*0.6);',
-'    capFilament+=tendril;',
-// Blue shift grows toward the tips (lower altitude = cooler), only where lit.
-'    tipBlue+=tendril*smoothstep(0.35,1.0,along);',
-// Diffuse HALO / bell: a soft dome above the cap that ignites first.
-'    float hd=length((uv-vec2(cpos.x,topY-0.035))*vec2(1.0,1.7));',
-'    capHaloGlow+=u_capHalo[i]*colMask*exp(-hd*hd*55.0);',
+'    // Autonomous micro-burst: each cap has its own independent random rhythm',
+'    float bT=floor(t*0.9+float(i)*0.37+float(i)*float(i)*0.11);',
+'    float bR=fract(sin(bT*53.7+float(i)*127.3)*8291.4);',
+'    float bAge=fract(t*0.9+float(i)*0.37+float(i)*float(i)*0.11);',
+'    float microBurst=step(0.82,bR)*exp(-bAge*5.5)*0.35;',
+'    capFilament+=colMask*yMask*(u_capPulse[i]+microBurst)*(wave+spark*1.20);',
 '  }',
 // Sweep: wide atmospheric red wash behind the sprites during big events.
 '  float sweepWash=0.0;',
@@ -389,29 +264,16 @@ var FS = [
 '    float dcx=abs(uv.x-cx);',
 '    sweepWash=exp(-dcx*dcx*14.0)*smoothstep(0.46,0.02,uv.y);',
 '  }',
-// Combine flicker. Balanced mode: a faint always-present baseline (u_idleGlow)
-// keeps the field from ever going fully black, but the STRIKES (capFilament +
-// halo) are what carry the energy now — discrete, not continuous.
-'  float baseline=idleFlick*0.18*u_idleGlow*(1.0-tendrilY*0.80);',
-'  float flickerAll=(baseline+capFilament*1.9)*spriteMat;',
-'  flickerAll+=u_capFlicker*0.12*spriteMat;',
+// Combine flicker - only where actual sprite material exists.
+'  float flickerAll=(idleFlick*0.55*(1.0-tendrilY*0.80)+capFilament*1.9)*spriteMat;',
+'  flickerAll+=u_capFlicker*0.25*spriteMat;',
 // Amplify existing red brightness (the tentacles themselves get brighter/dimmer).
-'  col.rgb*=(1.0+flickerAll*1.05);',
+'  col.rgb*=(1.0+flickerAll*1.05);', // sheets pulled back
 '  col.r+=flickerAll*0.15;',
 '  col.g+=flickerAll*0.04;',
 '  col.b+=flickerAll*0.08;',
-// Altitude colour stratification: tendril tips run blue-violet (lower altitude),
-// the body/halo stay red-orange (higher altitude) — real nitrogen emission.
-'  float blueW=tipBlue*1.6*spriteMat;',
-'  col.r+=blueW*0.10;',
-'  col.g+=blueW*0.10;',
-'  col.b+=blueW*0.42;',
-// Diffuse halo / bell: soft red-orange dome that ignites above the tendrils.
-'  col.r+=capHaloGlow*0.42;',
-'  col.g+=capHaloGlow*0.14;',
-'  col.b+=capHaloGlow*0.20;',
 // Pinpricks: tendril-only. Ghost red (pale, < tendril saturation) + off-white/yellow spark.
-'  float pinScale=(0.20+u_audioSync*0.55)*(0.5+u_idleGlow*0.5);',
+'  float pinScale=0.32+u_audioSync*0.38;',
 '  col.r+=pinprick*0.55*pinScale+pinprickW*1.10*pinScale;',
 '  col.g+=pinprick*0.08*pinScale+pinprickW*0.82*pinScale;',
 '  col.b+=pinprick*0.04*pinScale+pinprickW*0.28*pinScale;',
@@ -424,17 +286,6 @@ var FS = [
 '  col.r+=sweepWash*0.32;',
 '  col.g+=sweepWash*0.06;',
 '  col.b+=sweepWash*0.12;',
-// Green 'ghost' airglow: rare faint emerald sheet low near the sprite base,
-// lingering briefly after the strongest strikes (documented in Tibet outbreaks).
-'  if(u_ghost>0.001){',
-'    float gy=smoothstep(0.30,0.40,uv.y)*(1.0-smoothstep(0.40,0.48,uv.y));',
-'    float gx=smoothstep(0.04,0.12,uv.x)*(1.0-smoothstep(0.42,0.50,uv.x));',
-'    float gn=fbm(vec2(uv.x*7.0+u_pSprite.x,uv.y*5.0-t*0.03),3);',
-'    float ghost=u_ghost*gy*gx*(0.5+gn*0.6);',
-'    col.r+=ghost*0.04;',
-'    col.g+=ghost*0.22;',
-'    col.b+=ghost*0.10;',
-'  }',
 // Cloud zone warm tint under heavy activity
 '  if(cloudZone>0.005){',
 '    col.r+=cloudZone*u_amp*0.05;',
@@ -483,15 +334,13 @@ gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,
 var U={};
 ['u_img','u_time','u_amp','u_spriteDisp','u_cloudDrift','u_capFlicker',
  'u_dipMode','u_endFade','u_breath','u_globalBright','u_audioSync',
- 'u_pSprite','u_pCloud','u_pCap','u_sweep','u_ghost','u_idleGlow','u_prog'].forEach(function(n){
+ 'u_pSprite','u_pCloud','u_pCap','u_sweep'].forEach(function(n){
   U[n]=gl.getUniformLocation(prog,n);
 });
-var U_capPos=[], U_capPulse=[], U_capFront=[], U_capHalo=[];
+var U_capPos=[], U_capPulse=[];
 for(var i=0;i<5;i++){
   U_capPos.push(gl.getUniformLocation(prog,'u_capPos['+i+']'));
   U_capPulse.push(gl.getUniformLocation(prog,'u_capPulse['+i+']'));
-  U_capFront.push(gl.getUniformLocation(prog,'u_capFront['+i+']'));
-  U_capHalo.push(gl.getUniformLocation(prog,'u_capHalo['+i+']'));
 }
 
 var tex=gl.createTexture();
@@ -593,25 +442,6 @@ var eventIdx=0;
 var capPulses=[0,0,0,0,0];
 var capDecay=[0.9,1.0,1.1,0.9,1.0];
 
-// ---- Strike state ----
-// Each cap can hold a discrete, short-lived sprite STRIKE. A strike ignites
-// a halo at the top, then a brightness front races downward over ~0.10-0.18s,
-// holds an instant, then the whole thing fades over a few hundred ms.
-var capFront=[1,1,1,1,1];   // downward front position 0->1 (1 = fully propagated / idle)
-var capHalo=[0,0,0,0,0];    // halo brightness
-var capStrikeT=[-9,-9,-9,-9,-9]; // wall-clock time (s) each strike ignited; -9 = none active
-var STRIKE_PROP=0.13;       // seconds for the front to travel top->tips
-var STRIKE_HOLD=0.05;       // brief full-structure hold
-var STRIKE_FADE=0.42;       // fade-out duration
-
-function fireStrike(bucket, t, intensity){
-  // ignite: halo first, front resets to top, pulse carries amplitude
-  capStrikeT[bucket]=t;
-  capHalo[bucket]=Math.max(capHalo[bucket], 0.5+intensity*0.6);
-  capFront[bucket]=0.0;
-  capPulses[bucket]=Math.max(capPulses[bucket], intensity);
-}
-
 function pickCapBucket(evt){
   /* Primary rule: during the 60-74s sparkle volley, spread across all 5.
      Outside that, pick by centroid (low -> left, high -> right) with time drift. */
@@ -691,8 +521,6 @@ var State={
   amp:0, low:0, mid:0, hi:0,
   audioSync:0,        /* fast-attack beat follower (18ms atk / 550ms rel) */
   sweep:0,            /* sweeping cap wave during big events */
-  ghost:0,            /* rare green airglow ghost after big strikes */
-  idleGlow:1.0,       /* faint baseline glow (balanced mode); dips toward 0 in quiet passages */
   pSx:0,pSy:0, pCx:0,pCy:0, pCap:0
 };
 
@@ -726,44 +554,27 @@ function frame(ts){
   var ambEnv=DATA.env[envIdx];
   var ambNorm=Math.min(1.2, ambEnv/0.15);
 
-  /* fire due events as discrete STRIKES - muted during dip passages */
+  /* fire due events - but muted during dip passages */
   var dipGate = 1.0 - Math.min(1.0, State.dipMode*1.4);
   while(eventIdx<evts.length && evts[eventIdx].t<=sec){
     var e=evts[eventIdx++];
     var intensity=Math.max(0.15, Math.min(1.0, e.s*1.35)) * dipGate;
-    /* during heavy dip, the field rests dark - skip strikes entirely */
+    /* during heavy dip, skip cap firings entirely - just leave the image held */
     if(State.dipMode>0.6){ continue; }
-    /* light-weight events: only nudge the faint baseline, no strike */
+    /* light-weight events: just a tiny capFlicker bump, no overlay sparkles */
     if(e.s<0.18){
-      State.capFlicker=Math.max(State.capFlicker, intensity*0.4);
+      State.capFlicker=Math.max(State.capFlicker, intensity*0.5);
       continue;
     }
     var b=pickCapBucket(e);
-    /* DISCRETE STRIKE: ignite halo + reset downward front on this cap */
-    fireStrike(b, t, intensity);
-
-    /* DANCING CLUSTER: in the loud volley (60-74s) and the ~108s peak, a strong
-       transient ignites a quick sequence across neighbouring caps - the sky
-       'dances' as successive lightning strokes fire multiple sprites. */
-    var dancing = ((sec>=60&&sec<=78) || (sec>=104&&sec<=112)) && e.s>0.34;
-    if(dancing){
-      var extra=1+Math.floor(Math.random()*2);   // 1-2 companion strikes
-      for(var d=0;d<extra;d++){
-        var nb=(b+1+Math.floor(Math.random()*4))%5;
-        /* tiny stagger so they cascade rather than fire as one */
-        (function(bucket,delay,amp){
-          setTimeout(function(){
-            if(running) fireStrike(bucket, performance.now()/1000, amp);
-          }, delay);
-        })(nb, 40+d*55+Math.random()*40, intensity*(0.6+Math.random()*0.3));
-      }
-    }
-
-    /* strongest strikes throw a few specular tips down the lit tendril */
+    capPulses[b]=Math.max(capPulses[b], intensity);
+    /* only strongest events add a small number of specular tips along the tentacle,
+       never above or outside the sprite column */
     if(intensity>0.55){
       var cpos=CAP_POS[b];
       var nTips=1+Math.floor(intensity*2);
       for(var k=0;k<nTips;k++){
+        /* positions sampled along the tentacle column, mostly lower portion */
         var yOff=0.03+Math.random()*0.22;
         SPARKLES.push({
           x: cpos[0]+(Math.random()-0.5)*0.018,
@@ -775,37 +586,13 @@ function frame(ts){
         });
       }
     }
-    /* very strong event in 60-74s or 108s peak -> atmospheric sweep wash */
+    /* very strong event in 60-74s or 108s peak -> sweep */
     if((sec>=60&&sec<=74&&e.s>0.50) || (sec>=107&&sec<=110)){
+      /* trigger sweep cycle */
       State.sweep=1.2;
     }
-    /* GREEN GHOST: rare emerald airglow lingers after the very strongest strikes */
-    if(e.s>0.62 && Math.random()<0.5){
-      State.ghost=Math.min(1.0, State.ghost+0.7);
-    }
-    State.capFlicker=Math.max(State.capFlicker, intensity*0.7);
-  }
-
-  /* advance each active strike: halo fades, downward front propagates, then fade */
-  for(var i=0;i<5;i++){
-    if(capStrikeT[i]>-5){
-      var age=t-capStrikeT[i];
-      /* front races top->tips over STRIKE_PROP, then sits at 1 (idle) */
-      capFront[i]=Math.min(1.0, age/STRIKE_PROP);
-      /* halo ignites bright, decays over the propagation + hold window */
-      var haloLife=STRIKE_PROP+STRIKE_HOLD;
-      if(age>haloLife){
-        capHalo[i]*=Math.exp(-dt/180);
-      }
-      /* whole strike retired once well past fade */
-      if(age>STRIKE_PROP+STRIKE_HOLD+STRIKE_FADE){
-        capStrikeT[i]=-9;
-        capFront[i]=1.0;
-      }
-    } else {
-      capFront[i]=1.0;
-      capHalo[i]*=Math.exp(-dt/200);
-    }
+    /* transient flicker boost */
+    State.capFlicker=Math.max(State.capFlicker, intensity*0.9);
   }
 
   /* decay cap pulses - faster during dip for a clear visual cool-down */
@@ -813,16 +600,10 @@ function frame(ts){
   for(var i=0;i<5;i++){
     capPulses[i] *= Math.exp(-dt*dipFastDecay/(250*capDecay[i]));
   }
-  /* decay flicker/sweep/ghost */
+  /* decay flicker/sweep */
   State.capFlicker *= Math.exp(-dt*dipFastDecay/220);
-  State.ghost *= Math.exp(-dt/650);   /* ghost lingers ~0.65s */
   if(State.sweep>0.005) State.sweep += dt*0.0008;  /* slow sweep progression */
   if(State.sweep>1.3)   State.sweep = 0;
-
-  /* idle baseline glow: present but faint; pulled down (not to zero) in dips
-     so the field rests dark between strikes without ever going fully black */
-  var idleTgt = 0.85 - State.dipMode*0.55;
-  State.idleGlow=smooth(State.idleGlow, idleTgt, dt, 900, 2200);
 
   /* dip / end / breath */
   State.dipMode=smooth(State.dipMode, dipModeValue(sec), dt, 800, 2500);
@@ -855,7 +636,6 @@ function frame(ts){
   /* set uniforms */
   gl.uniform1i(U.u_img,0);
   gl.uniform1f(U.u_time,t);
-  gl.uniform1f(U.u_prog, Math.max(0.0, Math.min(1.0, (snd.currentTime||0)/119.78)));
   gl.uniform1f(U.u_amp,State.amp);
   gl.uniform1f(U.u_spriteDisp,State.spriteDisp);
   gl.uniform1f(U.u_cloudDrift,State.cloudDrift);
@@ -866,16 +646,12 @@ function frame(ts){
   gl.uniform1f(U.u_globalBright,State.globalBright);
   gl.uniform1f(U.u_audioSync,State.audioSync);
   gl.uniform1f(U.u_sweep,State.sweep);
-  gl.uniform1f(U.u_ghost,State.ghost);
-  gl.uniform1f(U.u_idleGlow,State.idleGlow);
   gl.uniform2f(U.u_pSprite,State.pSx,State.pSy);
   gl.uniform2f(U.u_pCloud, State.pCx,State.pCy);
   gl.uniform2f(U.u_pCap,   State.pCap,0);
   for(var i=0;i<5;i++){
     gl.uniform2f(U_capPos[i],CAP_POS[i][0],CAP_POS[i][1]);
     gl.uniform1f(U_capPulse[i],capPulses[i]);
-    gl.uniform1f(U_capFront[i],capFront[i]);
-    gl.uniform1f(U_capHalo[i],capHalo[i]);
   }
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 
@@ -892,7 +668,6 @@ function frame(ts){
 function drawSteady(){
   gl.uniform1i(U.u_img,0);
   gl.uniform1f(U.u_time,0);
-  gl.uniform1f(U.u_prog,0.0);
   gl.uniform1f(U.u_amp,0);
   gl.uniform1f(U.u_spriteDisp,0);
   gl.uniform1f(U.u_cloudDrift,0);
@@ -902,17 +677,12 @@ function drawSteady(){
   gl.uniform1f(U.u_breath,0);
   gl.uniform1f(U.u_globalBright,1.0);
   gl.uniform1f(U.u_sweep,0);
-  gl.uniform1f(U.u_audioSync,0);
-  gl.uniform1f(U.u_ghost,0);
-  gl.uniform1f(U.u_idleGlow,0.85);
   gl.uniform2f(U.u_pSprite,0,0);
   gl.uniform2f(U.u_pCloud,0,0);
   gl.uniform2f(U.u_pCap,0,0);
   for(var i=0;i<5;i++){
     gl.uniform2f(U_capPos[i],CAP_POS[i][0],CAP_POS[i][1]);
     gl.uniform1f(U_capPulse[i],0);
-    gl.uniform1f(U_capFront[i],1.0);
-    gl.uniform1f(U_capHalo[i],0);
   }
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 }
@@ -922,8 +692,6 @@ function startAll(){
   var begin=document.getElementById('begin');
   setupAudio();
   eventIdx=0; capPulses=[0,0,0,0,0]; SPARKLES=[];
-  capFront=[1,1,1,1,1]; capHalo=[0,0,0,0,0]; capStrikeT=[-9,-9,-9,-9,-9];
-  State.ghost=0; State.sweep=0; State.idleGlow=0.85;
   State.dipMode=0; State.endFade=1.0;
   lastTs=null;
   snd.currentTime=0;
@@ -942,8 +710,6 @@ function replayAll(){
   document.getElementById('replay-block').classList.remove('visible');
   document.getElementById('title-block').style.opacity='0';
   eventIdx=0; capPulses=[0,0,0,0,0]; SPARKLES=[];
-  capFront=[1,1,1,1,1]; capHalo=[0,0,0,0,0]; capStrikeT=[-9,-9,-9,-9,-9];
-  State.ghost=0; State.sweep=0; State.idleGlow=0.85;
   State.dipMode=0; State.endFade=1.0;
   snd.currentTime=0;
   var p=snd.play(); if(p && p.catch) p.catch(function(){});
@@ -957,6 +723,5 @@ snd.addEventListener('ended',function(){
   }, 1200);
 });
 </script>
-
-
-</body></html>
+</body>
+</html>
