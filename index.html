@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Red Sprites - Tastes of Eternity</title>
+<title>Ineffable? — Red Sprites</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;}
@@ -31,24 +31,111 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;}
   text-transform:uppercase;font-family:Georgia,serif;}
 #begin-main{color:rgba(255,255,255,0.82);font-size:32px;letter-spacing:0.28em;
   text-transform:uppercase;font-family:Georgia,serif;text-shadow:0 0 45px rgba(240,80,100,0.60);}
-#begin-duration{color:rgba(255,255,255,0.32);font-size:11px;letter-spacing:0.5em;
-  font-family:Georgia,serif;margin-top:4px;}
 #begin-btn{color:rgba(255,255,255,0.55);font-size:11px;letter-spacing:0.35em;
   text-transform:uppercase;font-family:Georgia,serif;
   border:1px solid rgba(220,80,100,0.32);padding:13px 44px;
   transition:all 0.8s;margin-top:14px;}
 #begin:hover #begin-btn{color:rgba(255,255,255,0.92);border-color:rgba(255,120,140,0.72);}
 
-/* Replay block at end */
-#replay-block{position:absolute;inset:0;z-index:25;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity 2s ease;}
-#replay-block.visible{opacity:1;pointer-events:auto;}
-#replay-btn{color:rgba(255,255,255,0.88);font-size:13px;letter-spacing:0.38em;
-  text-transform:uppercase;font-family:Georgia,serif;
-  border:1px solid rgba(220,80,100,0.50);padding:16px 52px;
-  cursor:pointer;background:rgba(25,6,10,0.55);transition:all 0.6s;}
-#replay-btn:hover{color:#fff;border-color:rgba(255,120,140,0.90);background:rgba(45,12,18,0.72);}
+  /* Gilda Display (SIL OFL) with modified glyphs -- t sheared, p given a
+     left-only foot. Renamed per the Reserved Font Name condition. */
+  @font-face{font-family:'AGDisplay';font-weight:400;font-style:normal;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
+  #veil{position:fixed;inset:0;background:#030305;opacity:0;z-index:12;pointer-events:none;
+    transition:opacity 4s ease;}
+  #veil.on{opacity:1;}
+  /* Closing panel. Sits BELOW the centre line -- the space above is left free
+     for whatever else these final black frames carry across the Apertures. */
+  /* ---------- closing panel: credits, framed card, continue box ----------
+     The whole panel is the click target; the box sits inside it, so a click
+     there bubbles up to the same handler -- one listener covers both. */
+  #again{position:fixed;left:50%;top:58%;width:max-content;max-width:92vw;transform:translate(-50%,-50%);z-index:13;
+    display:flex;flex-direction:column;align-items:center;cursor:pointer;
+    opacity:0;pointer-events:none;transition:opacity 1.4s ease;}
+  #again.show{opacity:1;pointer-events:auto;}
+
+  #again .credline{margin-bottom:.6em;text-align:center;
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    font-size:clamp(13px,1.75vw,22px);letter-spacing:.05em;color:#8f8574;}
+  #again .credline .nm{color:#b9b09b;}
+  #again .credline .mid{padding:0 .95em;opacity:.5;font-size:.7em;vertical-align:.18em;}
+
+  #again .frame{box-sizing:border-box;border:1px solid #cbbf95;background:rgba(10,9,6,.9);
+    max-width:100%;padding:1.9em 2.6em 2.1em;text-align:center;
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    color:#e8e0cd;line-height:1.45;transition:background .8s;}
+  #again:hover .frame{background:rgba(24,20,14,.94);}
+  #again .title{font-family:'AGDisplay',Didot,'Iowan Old Style',Georgia,serif;color:#8f8574;
+    font-size:clamp(21px,3.2vw,44px);letter-spacing:.02em;text-indent:.01em;line-height:1.05;}
+  #again .body{margin-top:1.15em;font-size:clamp(15px,2.25vw,30px);color:#ddd4bd;
+    letter-spacing:.03em;transform:translateX(.015em);}
+  #again .body em{font-style:italic;}
+  #again .last{display:block;margin-top:.42em;color:#9d8fc4;font-style:normal;
+    letter-spacing:.045em;}
+
+  #again .cbox{display:inline-block;margin-top:1.9em;text-align:center;
+    border:1px solid rgba(157,143,196,.62);padding:.5em 1.55em .55em;line-height:1.3;
+    transition:background .7s,border-color .7s;}
+  #again:hover .cbox{border-color:rgba(157,143,196,.9);}
+  #again .cbox .go{display:block;color:#b3a4d8;
+    font-size:clamp(14px,1.7vw,19px);letter-spacing:.15em;text-indent:.15em;}
+  #again:hover .cbox .go{color:#cbbde8;}
+  /* ---------- Aperture Gallery card: shown first, hands over at 11 s ---------- */
+  /* the card is opaque from the first frame, so the title page beneath is
+     never glimpsed. Its CONTENT fades in and out; then the black itself
+     dissolves away, revealing Stone Galaxy out of darkness. */
+  #gal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:#030305;text-align:center;padding:0 4vw;
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    opacity:1;transition:opacity 2.0s ease;}
+  #gal.dissolve{opacity:0;}
+  #gal.done{display:none;}
+  /* both directions are transitions. An animation with forwards fill cannot be
+     cancelled to fade OUT -- removing it snaps opacity back to the base value,
+     which is what made the words vanish instead of dissolving. */
+  #galinner{opacity:0;transition:opacity 2.4s ease;}
+  #galinner.in{opacity:1;}
+  #galinner.out{opacity:0;transition-duration:1.6s;}
+  .mastwrap{display:flex;align-items:center;justify-content:center;
+    font-size:clamp(33px,7.3vw,94px);}
+  .gallery{display:block;color:#ddd4bd;font-size:1em;font-family:'AGDisplay',Didot,'Iowan Old Style',Georgia,serif;font-weight:400;
+    letter-spacing:.012em;text-indent:.012em;line-height:1;opacity:.97;}
+  .lensrow{display:flex;align-items:baseline;justify-content:center;
+    margin-top:.34em;gap:.65em;}
+  /* all three now share one size and one tracking -- with the sizes equal, a
+     wider setting on any one of them would read as inconsistency, not accent */
+  .sep{color:#9d8fc4;font-family:'AGDisplay',Didot,'Iowan Old Style',Georgia,serif;
+    font-size:clamp(9px,1.35vw,17px);line-height:1;opacity:.55;
+    position:relative;top:-.22em;}
+  .flank,.lenses{font-family:'AGDisplay',Didot,'Iowan Old Style',Georgia,serif;
+    font-style:normal;font-weight:400;
+    color:#9d8fc4;font-size:clamp(18px,2.8vw,35px);letter-spacing:.07em;text-indent:.07em;
+    line-height:1;white-space:nowrap;opacity:.90;}
+  .tag{margin-top:1.6em;color:#8f8574;font-style:italic;font-weight:600;
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    font-size:clamp(19px,2.85vw,36px);letter-spacing:.075em;text-indent:.0375em;
+    line-height:1.6;opacity:1;}
+  .insp{margin-top:1.5em;color:#ddd4bd;font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    font-style:normal;font-weight:400;
+    font-size:clamp(16px,2.35vw,30px);letter-spacing:.045em;
+    transform:translateX(.0225em);line-height:1.6;opacity:.92;}
+  .insp .head{display:block;margin-bottom:0;font-size:1.12em;line-height:1.35;}
+  /* the Enter button's form, scaled right down and in the card's purple */
+  #nextbox{display:inline-block;margin-top:3.6em;text-align:center;
+    border:1px solid rgba(157,143,196,.78);padding:.85em 2.1em .9em;
+    color:#b3a4d8;cursor:pointer;line-height:1.3;
+    font-family:'Iowan Old Style','Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+    transition:background .7s,color .7s,border-color .7s;}
+  #nextbox:hover{background:#14111e;border-color:rgba(157,143,196,.9);}
+  #nextbox:hover .go{color:#cbbde8;}
+  #nextbox .note{display:block;font-size:clamp(14px,1.85vw,20px);
+    color:#ddd4bd;letter-spacing:.10em;text-indent:.10em;opacity:.88;}
+  #nextbox .note .dot{font-size:.66em;vertical-align:.18em;opacity:.75;
+    letter-spacing:0;padding:0 .25em;}
+  #nextbox .go{display:block;
+    font-size:clamp(18px,2.35vw,26px);letter-spacing:.22em;text-indent:.22em;}
+  /* this page's own Enter overlay sits at z-index 30, so the card is lifted
+     above it to cover everything on load */
+  #gal{z-index:40;}
 </style>
 </head>
 <body>
@@ -57,19 +144,31 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;}
   <canvas id="overlay-cv"></canvas>
 
   <div id="title-block">
-    <div id="title-main">Tastes of Eternity</div>
+    <div id="title-main">Ineffable?</div>
     <div id="title-sub">Red Sprites</div>
   </div>
 
   <div id="begin" onclick="startAll()">
-    <div id="begin-super">Tastes of Eternity</div>
+    <div id="begin-super">Ineffable?</div>
     <div id="begin-main">Red Sprites</div>
-    <div id="begin-duration">1 &middot; 59</div>
     <div id="begin-btn">Enter the Field</div>
   </div>
 
-  <div id="replay-block">
-    <button id="replay-btn" onclick="replayAll()">Experience Again</button>
+</div>
+<div id="veil"></div>
+<div id="again"><div class="credline"><span class="lbl">photograph</span> <span class="nm">Nicolas Escurat</span><span class="mid">&bull;</span><span class="lbl">soundtrack</span> <span class="nm">Alan Tower</span></div><div class="frame"><div class="title">Once more in a fresh way?</div><div class="body">While watching become aware<br>of your seeing and hearing</div><div class="cbox"><span class="go">Try it</span></div></div></div>
+
+<div id="gal">
+  <div id="galinner">
+    <div class="mastwrap"><span class="gallery">Aperture Gallery</span></div>
+    <div class="lensrow">
+      <span class="flank">One World</span>
+      <span class="sep">&bull;</span>
+      <span class="lenses">Endless Lenses</span>
+    </div>
+    <div class="tag">Still photographs of nature brought to life<br>Soundtracks created with invented acoustic instruments</div>
+    <div class="insp"><span class="head">Inspired by</span>What happens when astronauts see Earth from space?<br>What&rsquo;s it like to simply be?</div>
+    <div id="nextbox"><span class="go">Continue</span></div>
   </div>
 </div>
 
@@ -658,6 +757,7 @@ function frame(ts){
   /* overlay sparkles */
   drawSparkles(t);
 
+  if(sec>=TOTAL_DUR-VEIL_FADE) veilOn();   /* fade to black over the last 4 s */
   if(sec>=TOTAL_DUR-0.05){
     /* let the audio's 'ended' event handle the end */
   }
@@ -704,10 +804,10 @@ function startAll(){
   setTimeout(function(){ title.style.opacity='0'; }, 4600);
   running=true;
   requestAnimationFrame(frame);
+  armEndTimers();
 }
 
 function replayAll(){
-  document.getElementById('replay-block').classList.remove('visible');
   document.getElementById('title-block').style.opacity='0';
   eventIdx=0; capPulses=[0,0,0,0,0]; SPARKLES=[];
   State.dipMode=0; State.endFade=1.0;
@@ -715,13 +815,61 @@ function replayAll(){
   var p=snd.play(); if(p && p.catch) p.catch(function(){});
 }
 
-snd.addEventListener('ended',function(){
+/* End of the piece: black over the last 4 s, then the Experience Again panel
+   1.2 s after the sound ends. The soundtrack drives it; a timer started with
+   the piece is a safety net for when the audio clock does not advance. */
+var VEIL_FADE=4.0, PANEL_DELAY=1.2;
+var veil=document.getElementById('veil');
+var again=document.getElementById('again');
+var ended=false, veilShown=false, endTimers=[];
+function clearEndTimers(){ endTimers.forEach(clearTimeout); endTimers=[]; }
+function veilOn(){ if(!veilShown){ veilShown=true; veil.classList.add('on'); } }
+function pieceEnd(){
+  if(ended) return; ended=true;
   running=false;
-  document.getElementById('title-block').style.opacity='1';
-  setTimeout(function(){
-    document.getElementById('replay-block').classList.add('visible');
-  }, 1200);
+  veilOn(); clearEndTimers();
+  endTimers.push(setTimeout(function(){ again.classList.add('show'); }, PANEL_DELAY*1000));
+}
+function armEndTimers(){
+  clearEndTimers();
+  endTimers.push(setTimeout(veilOn,(TOTAL_DUR-VEIL_FADE+6)*1000));
+  endTimers.push(setTimeout(pieceEnd,(TOTAL_DUR+6)*1000));
+}
+snd.addEventListener('ended',pieceEnd);
+
+/* Try it: straight back to the beginning, no Enter screen */
+again.addEventListener('click',function(){
+  clearEndTimers(); ended=false;
+  veilShown=false; veil.classList.remove('on');
+  again.classList.remove('show');
+  replayAll();
+  lastTs=null;
+  if(!running){ running=true; requestAnimationFrame(frame); }
+  armEndTimers();
 });
+</script>
+<script>
+// ---- the gallery card waits for 'next': words fade to black, the black
+//      dissolves, and Stone Galaxy emerges out of it ----
+var GAL_OUT=1.6;     // words -> black
+var GAL_GAP=0.5;     // black holds
+var GAL_DISS=2.0;    // black -> Stone Galaxy
+var galCard=document.getElementById('gal');
+var galInner=document.getElementById('galinner');
+var nextbox=document.getElementById('nextbox');
+var galGoing=false;
+setTimeout(function(){ galInner.classList.add('in'); }, 400);
+function galNext(){
+  if(galGoing) return;
+  galGoing=true;
+  galInner.classList.remove('in');
+  galInner.classList.add('out');
+  setTimeout(function(){
+    galCard.classList.add('dissolve');
+    setTimeout(function(){ galCard.classList.add('done'); }, GAL_DISS*1000);
+  }, (GAL_OUT+GAL_GAP)*1000);
+}
+if(nextbox) nextbox.addEventListener('click',galNext);
 </script>
 </body>
 </html>
